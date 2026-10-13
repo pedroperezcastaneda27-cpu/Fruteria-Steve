@@ -1,0 +1,421 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #1c1d1f;
+  background: #f5f7f1;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #edf7ee 0%, #f7f6f2 100%);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 280px;
+  background: #123b26;
+  color: white;
+  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 1.8rem;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.brand small {
+  color: #d4f0db;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-item {
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: white;
+  padding: 11px 12px;
+  border-radius: 10px;
+  text-transform: capitalize;
+  opacity: 0.8;
+}
+
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
+
+.user-box {
+  margin-top: auto;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.login-card input,
+.toolbar input,
+.toolbar select,
+.checkout-box select {
+  border: 1px solid #dbe2d7;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: white;
+}
+
+.content {
+  flex: 1;
+  padding: 28px;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 18px;
+}
+
+.stat-card,
+.wide-card,
+.panel,
+.admin-card {
+  background: white;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 6px 18px rgba(28, 46, 33, 0.08);
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-card strong {
+  font-size: 1.7rem;
+}
+
+.stat-card.green {
+  border-top: 5px solid #2e9e52;
+}
+
+.stat-card.red {
+  border-top: 5px solid #db5353;
+}
+
+.wide-card {
+  grid-column: 1 / -1;
+}
+
+.summary-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar input,
+.toolbar select {
+  min-width: 180px;
+  flex: 1;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.product-card {
+  border: 1px solid #e7ecdf;
+  border-radius: 18px;
+  background: #fbfdfb;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emoji {
+  font-size: 3rem;
+}
+
+.product-card h3,
+.product-card p,
+.product-card strong,
+.product-card span,
+.product-card small {
+  margin: 0;
+}
+
+.chip {
+  display: inline-block;
+  width: fit-content;
+  background: #eaf7ee;
+  color: #0f7d34;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+.primary-button {
+  background: #138a3d;
+  color: white;
+}
+
+.secondary-button {
+  background: #edf2ee;
+  color: #153825;
+}
+
+.danger-button {
+  background: #f7d8d8;
+  color: #8c2f2f;
+}
+
+.cart-item,
+.inventory-row,
+.order-card,
+.report-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #ebefeb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #fdfefd;
+}
+
+.cart-item.compact {
+  align-items: center;
+}
+
+.quantity-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.quantity-row button,
+.mini-actions button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #dfe8df;
+  border-radius: 8px;
+  background: white;
+}
+
+.checkout-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.pos-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr;
+  gap: 20px;
+}
+
+.pos-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.pos-product {
+  border: 1px solid #dfe8df;
+  border-radius: 12px;
+  background: #f9faf7;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.pos-product span {
+  font-size: 2rem;
+}
+
+.pos-ticket {
+  border: 1px solid #e6eee6;
+  background: #fbfdfb;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list-stack.compact {
+  gap: 8px;
+}
+
+.alert-badge,
+.ok-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-weight: 700;
+}
+
+.alert-badge {
+  background: #fde3e3;
+  color: #b42d2d;
+}
+
+.ok-badge {
+  background: #eaf7ee;
+  color: #1e7d3a;
+}
+
+.mini-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.switch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.switch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #e7ece8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fcfdfc;
+}
+
+.report-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.report-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .content {
+    padding: 18px;
+  }
+
+  .pos-layout {
+    grid-template-columns: 1fr;
+  }
+}
