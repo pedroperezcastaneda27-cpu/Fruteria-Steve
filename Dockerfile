@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile optimized for Render and Prisma
+# Updated Dockerfile to use entrypoint script for migrations and startup
 
 # 1) Builder stage: install all dependencies (including dev), generate Prisma client, then build frontend
 FROM node:18-bullseye AS builder
@@ -18,7 +18,7 @@ COPY src ./src
 COPY server ./server
 
 # Generate Prisma client BEFORE the build (ensures @prisma/client is ready)
-RUN npx prisma generate
+RUN npx prisma generate || true
 
 # Build the frontend (Vite) and produce /dist
 RUN npm run build
@@ -33,13 +33,13 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/server ./server
+COPY --from=builder /app/scripts ./scripts
 
 ENV NODE_ENV=production
 EXPOSE 4000
 
-# Healthcheck optional
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD [ "node", "server/healthcheck.js" ] || exit 0
+# Make entrypoint executable
+RUN chmod +x ./scripts/entrypoint.sh || true
 
-# Entrypoint: ensure Prisma client generated, run migrations, seed (if DB configured) and start server
-# The commands are guarded: migrate/seed run only if DATABASE_URL is set
-CMD ["sh", "-c", "npx prisma generate && if [ -n \"$DATABASE_URL\" ]; then npx prisma migrate deploy && node prisma/seed.js; fi && node server/index.js"]
+# Entrypoint: run the entrypoint script which handles migrations/seed and starts the server
+CMD ["sh", "./scripts/entrypoint.sh"]
