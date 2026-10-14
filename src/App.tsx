@@ -10,6 +10,7 @@ import {
   type Order,
   type PermissionState,
   type Product,
+  type Role,
   type Sale,
   type User,
 } from './types';
@@ -34,6 +35,12 @@ type Tab = (typeof tabs)[number];
 
 const productLookup = (products: Product[], id: number) =>
   products.find((product) => product.id === id);
+
+const roleTabs: Record<Role, Tab[]> = {
+  admin: ['inicio', 'catalogo', 'carrito', 'pedido', 'caja', 'inventario', 'admin', 'reportes'],
+  cajero: ['inicio', 'caja', 'inventario', 'reportes'],
+  cliente: ['inicio', 'catalogo', 'carrito', 'pedido'],
+};
 
 export default function App() {
   const [products, setProducts] = useState<Product[]>(() =>
@@ -66,6 +73,13 @@ export default function App() {
   const [posItems, setPosItems] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'tarjeta' | 'digital'>('efectivo');
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [newUserForm, setNewUserForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '123456',
+    role: 'cliente' as Role,
+  });
 
   useEffect(() => {
     saveToStorage(STORAGE_KEYS.products, products);
@@ -106,6 +120,14 @@ export default function App() {
   }, []);
 
   const activeUser = users.find((user) => user.id === activeUserId) ?? null;
+  const visibleTabs = activeUser ? roleTabs[activeUser.role] : ['inicio', 'catalogo'];
+
+  useEffect(() => {
+    if (!activeUser) return;
+    if (!visibleTabs.includes(activeTab)) {
+      setActiveTab(visibleTabs[0]);
+    }
+  }, [activeUser, visibleTabs, activeTab]);
 
   const categories = useMemo(
     () => ['Todas', ...new Set(products.map((product) => product.category))],
@@ -145,6 +167,11 @@ export default function App() {
     .filter(Boolean) as Array<Product & { quantity: number; subtotal: number }>;
 
   const posTotal = posItemsData.reduce((sum, item) => sum + item.subtotal, 0);
+
+  const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
+  const lowStockProducts = products.filter((product) => product.stock <= 5);
+  const dailyTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
+  const orderCount = orders.length;
 
   const handleAddProductToCart = (productId: number) => {
     const product = productLookup(products, productId);
@@ -235,12 +262,13 @@ export default function App() {
     }
 
     setActiveUserId(matchedUser.id);
-    setActiveTab('inicio');
+    setActiveTab(matchedUser.role === 'admin' ? 'admin' : matchedUser.role === 'cajero' ? 'caja' : 'catalogo');
     alert(`Sesión iniciada como ${matchedUser.name}.`);
   };
 
   const handleLogout = () => {
     setActiveUserId(null);
+    setActiveTab('inicio');
     alert('Sesión cerrada.');
   };
 
@@ -307,11 +335,6 @@ export default function App() {
     alert(`Venta ${saleId} registrada correctamente.`);
   };
 
-  const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
-  const lowStockProducts = products.filter((product) => product.stock <= 5);
-  const dailyTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
-  const orderCount = orders.length;
-
   const handlePermissionToggle = (key: keyof PermissionState) => {
     setPermissions((current) => ({ ...current, [key]: !current[key] }));
   };
@@ -322,6 +345,32 @@ export default function App() {
         product.id === productId ? { ...product, stock: Math.max(0, product.stock + delta) } : product,
       ),
     );
+  };
+
+  const handleCreateUser = () => {
+    if (!newUserForm.name || !newUserForm.email || !newUserForm.password) {
+      alert('Completa nombre, correo y contraseña.');
+      return;
+    }
+
+    const exists = users.some((user) => user.email.toLowerCase() === newUserForm.email.toLowerCase());
+    if (exists) {
+      alert('Ese correo ya existe.');
+      return;
+    }
+
+    const user: User = {
+      id: Date.now(),
+      name: newUserForm.name,
+      email: newUserForm.email,
+      phone: newUserForm.phone || '0000000000',
+      password: newUserForm.password,
+      role: newUserForm.role,
+    };
+
+    setUsers((current) => [user, ...current]);
+    setNewUserForm({ name: '', email: '', phone: '', password: '123456', role: 'cliente' });
+    alert(`Usuario ${user.name} creado con rol ${user.role}.`);
   };
 
   return (
@@ -336,7 +385,7 @@ export default function App() {
         </div>
 
         <nav className="nav">
-          {tabs.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button key={tab} className={tab === activeTab ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab(tab)}>
               {tab}
             </button>
@@ -403,12 +452,38 @@ export default function App() {
             </div>
 
             <div className="wide-card">
-              <h3>Resúmen operativo</h3>
+              <h3>
+                {activeUser ? `Panel ${activeUser.role}` : 'Panel público'}
+              </h3>
               <ul className="summary-list">
-                <li>Catálogo sincronizado con el inventario.</li>
-                <li>Pedidos con validación de stock en caja y clientes.</li>
-                <li>Gestión de ventas y productos con alertas por agotamiento.</li>
-                <li>Modo PWA habilitado para instalación en móvil o escritorio.</li>
+                {activeUser?.role === 'admin' && (
+                  <>
+                    <li>Administrador: controla catálogo, permisos, usuarios y reportes.</li>
+                    <li>Gestión del inventario por producto y alertas de stock bajo.</li>
+                    <li>Supervisión de caja, pedidos y ventas diarias.</li>
+                  </>
+                )}
+                {activeUser?.role === 'cajero' && (
+                  <>
+                    <li>Cajero: genera ventas directas con cobro en efectivo, tarjeta o digital.</li>
+                    <li>Consulta inventario y también puede registrar bajas de stock.</li>
+                    <li>Revisa reportes rápidos de cobros y ventas del día.</li>
+                  </>
+                )}
+                {activeUser?.role === 'cliente' && (
+                  <>
+                    <li>Cliente: navega el catálogo, añade productos al carrito y confirma pedidos.</li>
+                    <li>Consulta su historial de pedidos y estado de pago.</li>
+                    <li>Puede recoger la compra en tienda con código de pickup.</li>
+                  </>
+                )}
+                {!activeUser && (
+                  <>
+                    <li>Catalogo visible en modo público para explorar productos.</li>
+                    <li>Inicia sesión para acceder según tu rol.</li>
+                    <li>Cliente, cajero y administrador tienen vista independiente.</li>
+                  </>
+                )}
               </ul>
             </div>
           </section>
@@ -510,64 +585,73 @@ export default function App() {
 
         {activeTab === 'caja' && (
           <section className="panel">
-            <div className="toolbar">
-              <input
-                type="text"
-                placeholder="Buscar producto en caja"
-                value={posSearch}
-                onChange={(e) => setPosSearch(e.target.value)}
-              />
-            </div>
+            {activeUser && activeUser.role !== 'cliente' ? (
+              <>
+                <div className="toolbar">
+                  <input
+                    type="text"
+                    placeholder="Buscar producto en caja"
+                    value={posSearch}
+                    onChange={(e) => setPosSearch(e.target.value)}
+                  />
+                </div>
 
-            <div className="pos-layout">
-              <div className="pos-products">
-                {prodPosList.map((product) => (
-                  <button key={product.id} className="pos-product" onClick={() => handleAddToPos(product.id)}>
-                    <span>{product.image}</span>
-                    <div>
-                      <strong>{product.name}</strong>
-                      <small>{currency.format(product.price)}</small>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              <div className="pos-ticket">
-                <h3>Ticket de venta</h3>
-                {posItemsData.length === 0 ? (
-                  <p>Sin productos.</p>
-                ) : (
-                  <>
-                    {posItemsData.map((item) => (
-                      <div key={item.id} className="cart-item compact">
+                <div className="pos-layout">
+                  <div className="pos-products">
+                    {prodPosList.map((product) => (
+                      <button key={product.id} className="pos-product" onClick={() => handleAddToPos(product.id)}>
+                        <span>{product.image}</span>
                         <div>
-                          <strong>{item.name}</strong>
-                          <small>{currency.format(item.price)}</small>
+                          <strong>{product.name}</strong>
+                          <small>{currency.format(product.price)}</small>
                         </div>
-                        <div className="quantity-row">
-                          <button onClick={() => handleUpdatePosQty(item.id, -1)}>-</button>
-                          <span>{item.quantity}</span>
-                          <button onClick={() => handleUpdatePosQty(item.id, 1)}>+</button>
-                        </div>
-                        <strong>{currency.format(item.subtotal)}</strong>
-                      </div>
+                      </button>
                     ))}
-                    <div className="checkout-box">
-                      <label>
-                        Método de pago:
-                        <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as any)}>
-                          <option value="efectivo">Efectivo</option>
-                          <option value="tarjeta">Tarjeta</option>
-                          <option value="digital">Digital</option>
-                        </select>
-                      </label>
-                      <h4>Total: {currency.format(posTotal)}</h4>
-                      <button className="primary-button" onClick={handleFinalizeSale}>Cobrar</button>
-                    </div>
-                  </>
-                )}
+                  </div>
+
+                  <div className="pos-ticket">
+                    <h3>Ticket de venta</h3>
+                    {posItemsData.length === 0 ? (
+                      <p>Sin productos.</p>
+                    ) : (
+                      <>
+                        {posItemsData.map((item) => (
+                          <div key={item.id} className="cart-item compact">
+                            <div>
+                              <strong>{item.name}</strong>
+                              <small>{currency.format(item.price)}</small>
+                            </div>
+                            <div className="quantity-row">
+                              <button onClick={() => handleUpdatePosQty(item.id, -1)}>-</button>
+                              <span>{item.quantity}</span>
+                              <button onClick={() => handleUpdatePosQty(item.id, 1)}>+</button>
+                            </div>
+                            <strong>{currency.format(item.subtotal)}</strong>
+                          </div>
+                        ))}
+                        <div className="checkout-box">
+                          <label>
+                            Método de pago:
+                            <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as any)}>
+                              <option value="efectivo">Efectivo</option>
+                              <option value="tarjeta">Tarjeta</option>
+                              <option value="digital">Digital</option>
+                            </select>
+                          </label>
+                          <h4>Total: {currency.format(posTotal)}</h4>
+                          <button className="primary-button" onClick={handleFinalizeSale}>Cobrar</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="wide-card">
+                <h3>Acceso restringido</h3>
+                <p>El cliente solo puede navegar el catálogo y confirmar pedidos.</p>
               </div>
-            </div>
+            )}
           </section>
         )}
 
@@ -596,39 +680,64 @@ export default function App() {
 
         {activeTab === 'admin' && (
           <section className="panel">
-            <h3>Panel administrativo</h3>
+            {activeUser?.role === 'admin' ? (
+              <>
+                <h3>Panel administrativo</h3>
 
-            <div className="admin-card">
-              <h4>Permisos por rol</h4>
-              <div className="switch-grid">
-                {(Object.keys(permissions) as Array<keyof PermissionState>).map((key) => (
-                  <label key={key} className="switch-row">
-                    <span>{key}</span>
-                    <input type="checkbox" checked={permissions[key]} onChange={() => handlePermissionToggle(key)} />
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="admin-card">
-              <h4>Productos</h4>
-              <div className="list-stack compact">
-                {products.map((product) => (
-                  <div key={product.id} className="inventory-row">
-                    <div>
-                      <strong>{product.name}</strong>
-                      <small>{currency.format(product.price)}</small>
-                    </div>
-                    <button
-                      className={product.active ? 'primary-button' : 'secondary-button'}
-                      onClick={() => setProducts((current) => current.map((p) => p.id === product.id ? { ...p, active: !p.active } : p))}
-                    >
-                      {product.active ? 'Activo' : 'Inactivo'}
-                    </button>
+                <div className="admin-card">
+                  <h4>Permisos por rol</h4>
+                  <div className="switch-grid">
+                    {(Object.keys(permissions) as Array<keyof PermissionState>).map((key) => (
+                      <label key={key} className="switch-row">
+                        <span>{key}</span>
+                        <input type="checkbox" checked={permissions[key]} onChange={() => handlePermissionToggle(key)} />
+                      </label>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                <div className="admin-card">
+                  <h4>Crear usuario</h4>
+                  <div className="switch-grid">
+                    <input placeholder="Nombre" value={newUserForm.name} onChange={(e) => setNewUserForm((c) => ({ ...c, name: e.target.value }))} />
+                    <input placeholder="Correo" value={newUserForm.email} onChange={(e) => setNewUserForm((c) => ({ ...c, email: e.target.value }))} />
+                    <input placeholder="Teléfono" value={newUserForm.phone} onChange={(e) => setNewUserForm((c) => ({ ...c, phone: e.target.value }))} />
+                    <input type="password" placeholder="Contraseña" value={newUserForm.password} onChange={(e) => setNewUserForm((c) => ({ ...c, password: e.target.value }))} />
+                    <select value={newUserForm.role} onChange={(e) => setNewUserForm((c) => ({ ...c, role: e.target.value as Role }))}>
+                      <option value="admin">Admin</option>
+                      <option value="cajero">Cajero</option>
+                      <option value="cliente">Cliente</option>
+                    </select>
+                    <button className="primary-button" onClick={handleCreateUser}>Guardar usuario</button>
+                  </div>
+                </div>
+
+                <div className="admin-card">
+                  <h4>Productos</h4>
+                  <div className="list-stack compact">
+                    {products.map((product) => (
+                      <div key={product.id} className="inventory-row">
+                        <div>
+                          <strong>{product.name}</strong>
+                          <small>{currency.format(product.price)}</small>
+                        </div>
+                        <button
+                          className={product.active ? 'primary-button' : 'secondary-button'}
+                          onClick={() => setProducts((current) => current.map((p) => p.id === product.id ? { ...p, active: !p.active } : p))}
+                        >
+                          {product.active ? 'Activo' : 'Inactivo'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="wide-card">
+                <h3>Acceso restringido</h3>
+                <p>Solo el administrador puede administrar usuarios, productos y permisos.</p>
               </div>
-            </div>
+            )}
           </section>
         )}
 
