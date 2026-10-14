@@ -1,28 +1,33 @@
-# Build stage
-FROM node:18-bullseye as builder
+# Multi-stage Dockerfile optimized for Render and Prisma
+
+# 1) Builder stage: install all dependencies (including dev), generate Prisma client, then build frontend
+FROM node:18-bullseye AS builder
 WORKDIR /app
 
-# Copy package files and install all dependencies (dev + prod) so we have prisma CLI available
+# Copy package manifests first to leverage layer cache
 COPY package.json package-lock.json* ./
-# Copy project files needed for build
+
+# Install all dependencies (dev + prod) so Prisma CLI and build tools are available
+RUN npm ci --silent --no-audit --progress=false
+
+# Copy Prisma schema and source files needed for build
 COPY prisma ./prisma
 COPY tsconfig.json tsconfig.node.json vite.config.ts ./
 COPY public ./public
 COPY src ./src
+COPY server ./server
 
-RUN npm ci
+# Generate Prisma client BEFORE the build (ensures @prisma/client is ready)
+RUN npx prisma generate
 
-# Generate Prisma client (requires node_modules/prisma)
-RUN npx prisma generate || true
-
-# Build frontend
+# Build the frontend (Vite) and produce /dist
 RUN npm run build
 
-# Runtime stage
-FROM node:18-bullseye-slim
+# 2) Runtime stage: copy only what's needed for runtime
+FROM node:18-bullseye-slim AS runtime
 WORKDIR /app
 
-# Copy built frontend and node_modules from builder
+# Copy built frontend and node_modules (containing @prisma/client)
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
@@ -32,5 +37,9 @@ COPY --from=builder /app/server ./server
 ENV NODE_ENV=production
 EXPOSE 4000
 
-# Ensure migrations and seed run on container start (DATABASE_URL must be set in env)
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && node prisma/seed.js && node server/index.js"]
+# Healthcheck optional
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD [ "node", "server/healthcheck.js" ] || exit 0
+
+# Entrypoint: ensure Prisma client generated, run migrations, seed (if DB configured) and start server
+# The commands are guarded: migrate/seed run only if DATABASE_URL is set
+CMD ["sh", "-c", "npx prisma generate && if [ -n \"$DATABASE_URL\" ]; then npx prisma migrate deploy && node prisma/seed.js; fi && node server/index.js"]
