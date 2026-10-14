@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install all dependencies (dev + prod) so Prisma CLI and build tools are available
-RUN npm ci --silent --no-audit --progress=false
+RUN npm ci --silent
 
 # Copy Prisma schema and source files needed for build
 COPY prisma ./prisma
