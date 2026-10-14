@@ -1,0 +1,55 @@
+
+name: Generar APK Android
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/android-apk.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Instalar dependencias web
+        run: npm install
+
+      - name: Compilar aplicación web
+        run: npm run build
+
+      - name: Preparar Capacitor Android
+        run: |
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npx cap init "Fruteria Steve" "com.fruteriasteve.app" --web-dir=dist
+          npx cap add android
+
+      - name: Copiar aplicación web
+        run: npx cap copy android
+
+      - name: Generar APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Publicar APK descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fruteria-Steve-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
