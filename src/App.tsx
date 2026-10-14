@@ -149,7 +149,7 @@ export default function App() {
   }, []);
 
   const activeUser = users.find((user) => user.id === activeUserId) ?? null;
-  const visibleTabs = activeUser ? roleTabs[activeUser.role] : ['inicio', 'catalogo'];
+  const visibleTabs: Tab[] = activeUser ? roleTabs[activeUser.role] : ['inicio', 'catalogo'];
 
   useEffect(() => {
     if (!activeUser) return;
