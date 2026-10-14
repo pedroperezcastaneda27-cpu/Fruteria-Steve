@@ -1,0 +1,1 @@
+Updated repository to add Prisma/Postgres support, seeds and webhook endpoint for Mercado Pago. See README for deployment instructions.

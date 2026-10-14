@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id                      Int      @id @default(autoincrement())
+  name                    String
+  mercadoPagoAccessToken  String?  @db.Text
+  createdAt               DateTime @default(now())
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String
+  role      String
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  category    String
+  price       Float
+  stock       Int
+  unit        String
+  description String?
+  image       String?
+  active      Boolean  @default(true)
+}
+
+model Order {
+  id            String   @id
+  createdAt     DateTime @default(now())
+  total         Float
+  paymentStatus String
+  status        String
+  pickupCode    String?
+  customerName  String?
+  customerPhone String?
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id        Int    @id @default(autoincrement())
+  order     Order  @relation(fields: [orderId], references: [id])
+  orderId   String
+  productId Int
+  quantity  Int
+  price     Float
+}
+
+model Sale {
+  id        String   @id
+  cashierId Int
+  total     Float
+  paymentMethod String
+  createdAt DateTime @default(now())
+}
