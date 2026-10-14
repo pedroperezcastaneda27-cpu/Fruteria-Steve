@@ -15,6 +15,13 @@ import {
   type User,
 } from './types';
 
+type Store = {
+  id?: number;
+  name: string;
+  mercadoPagoAccessToken?: string | null;
+  createdAt?: string;
+};
+
 const currency = new Intl.NumberFormat('es-MX', {
   style: 'currency',
   currency: 'MXN',
@@ -81,6 +88,10 @@ export default function App() {
     role: 'cliente' as Role,
   });
 
+  // Store / MercadoPago setup
+  const [store, setStore] = useState<Store | null>(null);
+  const [storeForm, setStoreForm] = useState<{ name: string; mercadoPagoAccessToken: string }>({ name: '', mercadoPagoAccessToken: '' });
+
   useEffect(() => {
     saveToStorage(STORAGE_KEYS.products, products);
   }, [products]);
@@ -117,6 +128,24 @@ export default function App() {
 
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  // load store from server (local lowdb) so admin can configure Mercado Pago quickly
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/store');
+        if (res.ok) {
+          const data = await res.json();
+          if (data) {
+            setStore(data);
+            setStoreForm({ name: data.name || '', mercadoPagoAccessToken: data.mercadoPagoAccessToken || '' });
+          }
+        }
+      } catch (err) {
+        // ignore -- server may not be running locally
+      }
+    })();
   }, []);
 
   const activeUser = users.find((user) => user.id === activeUserId) ?? null;
@@ -371,6 +400,25 @@ export default function App() {
     setUsers((current) => [user, ...current]);
     setNewUserForm({ name: '', email: '', phone: '', password: '123456', role: 'cliente' });
     alert(`Usuario ${user.name} creado con rol ${user.role}.`);
+  };
+
+  // Save store configuration to local server (/api/setup)
+  const handleSaveStore = async () => {
+    try {
+      const res = await fetch('/api/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: storeForm.name, mercadoPagoAccessToken: storeForm.mercadoPagoAccessToken || null }),
+      });
+      if (!res.ok) throw new Error('No se pudo guardar');
+      const json = await res.json();
+      setStore(json.store || { name: storeForm.name, mercadoPagoAccessToken: storeForm.mercadoPagoAccessToken });
+      // also persist locally so admin can install PWA and keep token in localStorage
+      localStorage.setItem('fruteria-steve-store', JSON.stringify({ name: storeForm.name, mercadoPagoAccessToken: storeForm.mercadoPagoAccessToken }));
+      alert('Configuración guardada.');
+    } catch (err) {
+      alert('Error guardando configuración. Asegúrate de que el servidor esté corriendo localmente.');
+    }
   };
 
   return (
@@ -683,6 +731,26 @@ export default function App() {
             {activeUser?.role === 'admin' ? (
               <>
                 <h3>Panel administrativo</h3>
+
+                <div className="admin-card">
+                  <h4>Configuración de tienda</h4>
+                  <div className="switch-grid">
+                    <input placeholder="Nombre de la tienda" value={storeForm.name} onChange={(e) => setStoreForm((c) => ({ ...c, name: e.target.value }))} />
+                    <input placeholder="Token Mercado Pago" value={storeForm.mercadoPagoAccessToken} onChange={(e) => setStoreForm((c) => ({ ...c, mercadoPagoAccessToken: e.target.value }))} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="primary-button" onClick={handleSaveStore}>Guardar configuración</button>
+                      <button className="secondary-button" onClick={() => { setStoreForm({ name: '', mercadoPagoAccessToken: '' }); localStorage.removeItem('fruteria-steve-store'); alert('Formulario limpiado'); }}>Limpiar</button>
+                    </div>
+                    {store && (
+                      <div style={{ marginTop: 8 }}>
+                        <small>Tienda guardada: <strong>{store.name}</strong></small>
+                        <div>
+                          <small>MP token: <strong>{store.mercadoPagoAccessToken ? (store.mercadoPagoAccessToken.slice(0, 6) + '••••') : 'no configurado'}</strong></small>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <div className="admin-card">
                   <h4>Permisos por rol</h4>
