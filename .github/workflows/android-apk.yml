@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
@@ -18,7 +19,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Instalar Java
         uses: actions/setup-java@v4
@@ -26,16 +26,18 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Instalar dependencias web
+      - name: Instalar dependencias
         run: npm install
 
       - name: Compilar aplicación web
         run: npm run build
 
-      - name: Preparar Capacitor Android
+      - name: Instalar Capacitor Android
+        run: npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+
+      - name: Configurar Capacitor
         run: |
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
-          npx cap init "Fruteria Steve" "com.fruteriasteve.app" --web-dir=dist
+          node -e "require('fs').writeFileSync('capacitor.config.json', JSON.stringify({appId:'com.fruteriasteve.app',appName:'Fruteria Steve',webDir:'dist'}))"
           npx cap add android
 
       - name: Copiar aplicación web
