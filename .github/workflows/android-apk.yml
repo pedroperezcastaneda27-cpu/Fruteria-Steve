@@ -1,5 +1,6 @@
 
 name: Generar APK Android
+# Reconstrucción tras corregir los tipos TypeScript
 
 on:
   workflow_dispatch:
@@ -18,7 +19,7 @@ jobs:
       - name: Instalar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Instalar Java
         uses: actions/setup-java@v4
