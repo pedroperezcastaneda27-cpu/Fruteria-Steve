@@ -154,7 +154,7 @@ export default function App() {
   useEffect(() => {
     if (!activeUser) return;
     if (!visibleTabs.includes(activeTab)) {
-      setActiveTab(visibleTabs[0]);
+      setActiveTab('inicio');
     }
   }, [activeUser, visibleTabs, activeTab]);
 
@@ -434,7 +434,7 @@ export default function App() {
 
         <nav className="nav">
           {visibleTabs.map((tab) => (
-            <button key={tab} className={tab === activeTab ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab(tab)}>
+            <button key={tab} className={tab === activeTab ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab(tab as Tab)}>
               {tab}
             </button>
           ))}
